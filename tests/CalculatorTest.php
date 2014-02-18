@@ -26,5 +26,9 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
         $this->_calculator->setExpression('sqrt(-5)');
         $this->assertEquals(['sqrt', '(', '-5', ')'], $this->_calculator->getTokens());
     }
+
+    public function testGetReversedPolishNotation() {
+        // todo
+    }
 }
  
