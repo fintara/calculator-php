@@ -1,0 +1,20 @@
+{
+    "name": "fintara/calculator-php",
+    "description": "Calculator for arithmetic expressions",
+    "minimum-stability": "stable",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Tsvetan Ovedenski",
+            "email": "dev@tsovedenski.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Fintara\\Tools\\Calculator\\": "src/"
+        }
+    },
+    "require": {
+        "php": ">=5.4"
+    }
+}
