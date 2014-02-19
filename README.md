@@ -1,9 +1,11 @@
 ##PHP Calculator for arithmetic expressions##
 
 PHP calculator which evaluates different arithmetic expressions:
-    2+5.9
-    3.5^(2-5)
-    5-(2*(1+2))
+```
+2+5.9
+3.5^(2-5)
+5-(2*(1+2))
+```
 
 The included functions by default are sqrt(x) and log(base, arg), but
 there is also an option to add custom functions with any number of arguments.
