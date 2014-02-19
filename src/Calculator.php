@@ -104,10 +104,10 @@ class Calculator {
                     || $this->_expression[$i - 1] === self::FUNC_ARG_SEPARATOR)) {
                 $number .= $this->_expression[$i];
             }
-            else if(is_numeric($this->_expression[$i]) || $this->_expression[$i] === '.') {
+            else if(ctype_digit($this->_expression[$i]) || $this->_expression[$i] === '.') {
                 $number .= $this->_expression[$i];
             }
-            else if(!is_numeric($this->_expression[$i]) && $this->_expression[$i] !== '.' && strlen($number) > 0) {
+            else if(!ctype_digit($this->_expression[$i]) && $this->_expression[$i] !== '.' && strlen($number) > 0) {
                 if(!is_numeric($number)) {
                     throw new \InvalidArgumentException('Invalid float number detected (more than 1 float point?)');
                 }
@@ -122,8 +122,10 @@ class Calculator {
                 }
                 $tokens[] = $this->_expression[$i];
             }
-            else if(in_array($this->_expression[$i], $this->_operators)
-                && !in_array($this->_expression[$i - 1], $this->_operators)) {
+            else if($i + 1 < strlen($this->_expression) && in_array($this->_expression[$i], $this->_operators)) {
+                if(in_array($this->_expression[$i + 1], $this->_operators)) {
+                    throw new \InvalidArgumentException('Invalid expression');
+                }
                 $tokens[] = $this->_expression[$i];
             }
             else if($this->_expression[$i] === self::FUNC_ARG_SEPARATOR) {
@@ -293,7 +295,7 @@ class Calculator {
      * @return string
      */
     public function formatNumber($number, $decimals = 2) {
-        if(is_int($number))
+        if(ctype_digit("$number"))
             return "$number";
 
         $formatted = number_format($number, $decimals, '.', '');
@@ -362,6 +364,9 @@ class Calculator {
             return $a * $b;
         }
         else if($operator === '/') {
+            if($a === 0) {
+                throw new \InvalidArgumentException('Division by zero occured');
+            }
             return $b / $a;
         }
         else if($operator === '^') {
@@ -380,6 +385,3 @@ class Calculator {
         return call_user_func_array($this->_functions[$functionName]['func'], array_reverse($params));
     }
 }
-
-$c = new Calculator('log(10,999+1)');
-echo $c->calculate();

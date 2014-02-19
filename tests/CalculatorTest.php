@@ -65,17 +65,34 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
     }
 
     public function testCalculate() {
+        $limit = 5;
+
         $this->_calculator->setExpression('250*14.3');
-        $this->assertEquals(3575, $this->_calculator->calculate(5));
+        $this->assertEquals(3575, $this->_calculator->calculate($limit));
 
         $this->_calculator->setExpression('3^6 / 117');
-        $this->assertEquals(6.23077, $this->_calculator->calculate(5));
+        $this->assertEquals(6.23077, $this->_calculator->calculate($limit));
 
         $this->_calculator->setExpression('(2.16 - 48.34)^-1');
-        $this->assertEquals(-0.02165, $this->_calculator->calculate(5));
+        $this->assertEquals(-0.02165, $this->_calculator->calculate($limit));
 
         $this->_calculator->setExpression('(59 - 15 + 3*6)/21');
-        $this->assertEquals(2.95238, $this->_calculator->calculate(5));
+        $this->assertEquals(2.95238, $this->_calculator->calculate($limit));
+
+        $this->_calculator->setExpression('-(-5)');
+        $this->assertEquals('5', $this->_calculator->calculate($limit));
+    }
+
+    public function testFormatNumber() {
+        $limit = 5;
+
+        $this->assertEquals('14.13265', $this->_calculator->formatNumber(14.132646, $limit));
+        $this->assertEquals('14.13264', $this->_calculator->formatNumber(14.132644, $limit));
+        $this->assertEquals('14.13265', $this->_calculator->formatNumber(14.132645, $limit));
+        $this->assertEquals('12345', $this->_calculator->formatNumber(12345, $limit));
+        $this->assertEquals('12345', $this->_calculator->formatNumber(12345.0000000, $limit));
+        $this->assertEquals('12345', $this->_calculator->formatNumber(12345.0000001, $limit));
+        $this->assertEquals('12345.1', $this->_calculator->formatNumber(12345.100001, $limit));
     }
 
     private function queueToString(\SplQueue $queue) {
