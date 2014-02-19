@@ -58,7 +58,7 @@ class Calculator {
      */
     public function addFunction($name, callable $function) {
         if(array_key_exists($name, $this->_functions)) {
-            trigger_error("Function with this name ($name) has been already added", E_USER_NOTICE);
+            trigger_error("Function with name ($name) has been already added and will be rewritten", E_USER_NOTICE);
         }
 
         $this->_functions[$name] = $function;
@@ -70,12 +70,11 @@ class Calculator {
      * @throws \InvalidArgumentException
      */
     public function removeFunction($name) {
-        if(array_key_exists($name, $this->_functions)) {
-            unset($this->_functions[$name]);
-        }
-        else {
+        if(!array_key_exists($name, $this->_functions)) {
             throw new \InvalidArgumentException('There is no function with this name');
         }
+
+        unset($this->_functions[$name]);
     }
 
     /**
@@ -95,13 +94,14 @@ class Calculator {
 
         for($i = 0; $i < strlen($this->_expression); $i++) {
             if($this->_expression[$i] === '-'
-                && ($i === 0 || $this->_expression[$i - 1] === '(' || $this->_expression[$i - 1] === self::FUNC_ARG_SEPARATOR)) {
+                && ($i === 0 || $this->_expression[$i - 1] === '(' || $this->_expression[$i - 1] === '^'
+                    || $this->_expression[$i - 1] === self::FUNC_ARG_SEPARATOR)) {
                 $number .= $this->_expression[$i];
             }
-            else if(ctype_digit($this->_expression[$i]) || $this->_expression[$i] === '.') {
+            else if(is_numeric($this->_expression[$i]) || $this->_expression[$i] === '.') {
                 $number .= $this->_expression[$i];
             }
-            else if(!ctype_digit($this->_expression[$i]) && $this->_expression[$i] !== '.' && strlen($number) > 0) {
+            else if(!is_numeric($this->_expression[$i]) && $this->_expression[$i] !== '.' && strlen($number) > 0) {
                 if(!is_numeric($number)) {
                     throw new \InvalidArgumentException('Invalid float number detected (more than 1 float point?)');
                 }
@@ -111,6 +111,9 @@ class Calculator {
                 $i--;
             }
             else if(in_array($this->_expression[$i], $this->_brackets)) {
+                if($i - 1 > -1 && $this->_expression[$i] === '(' && is_numeric($this->_expression[$i - 1])) {
+                    $tokens[] = '*';
+                }
                 $tokens[] = $this->_expression[$i];
             }
             else if(in_array($this->_expression[$i], $this->_operators)
@@ -127,6 +130,9 @@ class Calculator {
                         $tokens[] = $functionName;
                     }
                 }
+            }
+            else {
+                throw new \InvalidArgumentException("Invalid token occurred ({$this->_expression[$i]})");
             }
         }
 
@@ -156,13 +162,15 @@ class Calculator {
         $tokensCount = count($tokens);
         for($i = 0; $i < $tokensCount; $i++) {
             if(is_numeric($tokens[$i])) {
+                // (string + 0) converts to int or float
                 $queue->enqueue($tokens[$i] + 0);
             }
             else if(array_key_exists($tokens[$i], $this->_functions)) {
                 $stack->push($tokens[$i]);
             }
             else if($tokens[$i] === self::FUNC_ARG_SEPARATOR) {
-                if(!$stack->offsetExists('(')) {
+                // checking whether stack contains left parenthesis (dirty hack)
+                if(substr_count($stack->serialize(), '(') === 0) {
                     throw new \InvalidArgumentException('Parenthesis are misplaced');
                 }
 
@@ -184,7 +192,8 @@ class Calculator {
                 $stack->push('(');
             }
             else if($tokens[$i] === ')') {
-                if(!$stack->offsetExists('(')) {
+                // checking whether stack contains left parenthesis (dirty hack)
+                if(substr_count($stack->serialize(), '(') === 0) {
                     throw new \InvalidArgumentException('Parenthesis are misplaced');
                 }
 
@@ -230,7 +239,7 @@ class Calculator {
      */
     private function isOperatorLeftAssociative($operator) {
         if(!in_array($operator, $this->_operators)) {
-            throw new \InvalidArgumentException('Cannot check association of ' . $operator . ' operator');
+            throw new \InvalidArgumentException("Cannot check association of $operator operator");
         }
 
         if($operator === '^')
@@ -246,16 +255,15 @@ class Calculator {
      */
     private function getOperatorPrecedence($operator) {
         if(!in_array($operator, $this->_operators)) {
-            throw new \InvalidArgumentException('Cannot check association of ' . $operator . ' operator');
+            throw new \InvalidArgumentException("Cannot check precedence of $operator operator");
         }
 
         if($operator === '^') {
-            return 3;
+            return 4;
         }
         else if($operator === '*' || $operator === '/') {
-            return 2;
+            return 3;
         }
-        return 1;
+        return 2;
     }
 }
-
