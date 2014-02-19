@@ -1,5 +1,13 @@
 ##PHP Calculator for arithmetic expressions##
 
+PHP calculator which evaluates different arithmetic expressions:
+    2+5.9
+    3.5^(2-5)
+    5-(2*(1+2))
+
+The included functions by default are sqrt(x) and log(base, arg), but
+there is also an option to add custom functions with any number of arguments.
+
 ####Basic usage####
 ```php
 use \Fintara\Tools\Calculator\Calculator;
@@ -20,7 +28,13 @@ $calculator->addFunction('cbrt', function($x) {
 }, 1);
 
 // You can also use different parts of the calculator:
-$tokens = $calculator->getTokens(); // Separate tokens
-$rpn = $calculator->getReversePolishNotation($tokens); // Rearrange tokens in Postfix notation (returns \SplQueue)
-$format = $calculator->formatNumber(4.230000, 3); // (4.23) Strips all zeros in the decimal part up to the limit
+
+// Separate tokens
+$tokens = $calculator->getTokens();
+
+// Rearrange tokens in Postfix notation (returns \SplQueue)
+$rpn = $calculator->getReversePolishNotation($tokens);
+
+// Strips all zeros in the decimal part up to the limit
+$format = $calculator->formatNumber(4.230000, 3); // 4.23
 ```
