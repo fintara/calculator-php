@@ -2,6 +2,7 @@
 namespace Fintara\Tools\Calculator;
 
 class Calculator {
+    const RETURN_ORIGINAL = -1;
     const FUNC_ARG_SEPARATOR = ',';
 
     /**
@@ -35,9 +36,10 @@ class Calculator {
             $this->setExpression($expression);
         }
 
-        $this->addFunction('sqrt', function($x) { return sqrt($x); });
-        $this->addFunction('ln', function($x) { return log10($x); });
-        $this->addFunction('log', function($base, $arg) { return log($arg, $base); });
+        $this->addFunction('sqrt', function($x) { return sqrt($x); }, 1);
+        $this->addFunction('ln', function($x) { return log($x); }, 1);
+        $this->addFunction('lg', function($x) { return log10($x); }, 1);
+        $this->addFunction('log', function($base, $arg) { return log($arg, $base); }, 2);
     }
 
     /**
@@ -55,13 +57,17 @@ class Calculator {
     /**
      * @param string   $name Name of the function (as in arithmetic expressions).
      * @param callable $function Interpretation of this function.
+     * @param int      $paramsCount Number of parameters.
      */
-    public function addFunction($name, callable $function) {
+    public function addFunction($name, callable $function, $paramsCount) {
         if(array_key_exists($name, $this->_functions)) {
             trigger_error("Function with name ($name) has been already added and will be rewritten", E_USER_NOTICE);
         }
 
-        $this->_functions[$name] = $function;
+        $this->_functions[$name] = [
+            'func'        => $function,
+            'paramsCount' => $paramsCount,
+        ];
     }
 
     /**
@@ -128,6 +134,7 @@ class Calculator {
                     if($i + strlen($functionName) < strlen($this->_expression)
                         && substr($this->_expression, $i, strlen($functionName)) === $functionName) {
                         $tokens[] = $functionName;
+                        $i = $i + strlen($functionName) - 1;
                     }
                 }
             }
@@ -155,7 +162,7 @@ class Calculator {
      * @return \SplQueue
      * @throws \InvalidArgumentException
      */
-    public function getReversedPolishNotation(array $tokens) {
+    public function getReversePolishNotation(array $tokens) {
         $queue = new \SplQueue();
         $stack = new \SplStack();
 
@@ -203,7 +210,7 @@ class Calculator {
 
                 $stack->pop();
 
-                if(array_key_exists($stack->top(), $this->_functions)) {
+                if($stack->count() > 0 && array_key_exists($stack->top(), $this->_functions)) {
                     $queue->enqueue($stack->pop());
                 }
             }
@@ -216,20 +223,90 @@ class Calculator {
         return $queue;
     }
 
+    /**
+     * Calculates tokens ordered in RPN.
+     *
+     * @param  \SplQueue $queue
+     * @return int|float Result of the calculation.
+     * @throws \InvalidArgumentException
+     */
+    public function calculateFromRPN(\SplQueue $queue) {
+        $stack = new \SplStack();
+
+        while($queue->count() > 0) {
+            $currentToken = $queue->dequeue();
+            if(is_numeric($currentToken)) {
+                $stack->push($currentToken);
+            }
+            else {
+                if(in_array($currentToken, $this->_operators)) {
+                    if($stack->count() < 2) {
+                        throw new \InvalidArgumentException('Invalid expression');
+                    }
+                    $stack->push($this->executeOperator($currentToken, $stack->pop(), $stack->pop()));
+                }
+                else if(array_key_exists($currentToken, $this->_functions)) {
+                    if($stack->count() < $this->_functions[$currentToken]['paramsCount']) {
+                        throw new \InvalidArgumentException('Invalid expression');
+                    }
+
+                    $params = [];
+                    for($i = 0; $i < $this->_functions[$currentToken]['paramsCount']; $i++) {
+                        $params[] = $stack->pop();
+                    }
+
+                    $stack->push($this->executeFunction($currentToken, $params));
+                }
+            }
+        }
+
+        if($stack->count() === 1) {
+            return $stack->pop();
+        }
+
+        throw new \InvalidArgumentException('Invalid expression');
+    }
+
 
     /**
      * Calculates the current arithmetic expression.
      *
-     * @return int|float Result of the calculation.
-     * @throws \Exception
+     * @param  int $round Round the result.
+     * @return int|float|string Result of the calculation.
      */
-    public function calculate() {
-        if(!$this->_expression) {
-            throw new \Exception('There is no arithmetic expression provided');
+    public function calculate($round = self::RETURN_ORIGINAL) {
+        $tokens = $this->getTokens();
+        $rpn    = $this->getReversePolishNotation($tokens);
+
+        $result = $this->calculateFromRPN($rpn);
+
+        if($round === self::RETURN_ORIGINAL) {
+            return $result;
         }
 
-        $tokens = $this->getTokens();
-        $rpn    = $this->getReversedPolishNotation($tokens);
+        return $this->formatNumber($result, $round);
+    }
+
+    /**
+     * @param  int|float $number
+     * @param  int $decimals
+     * @return string
+     */
+    public function formatNumber($number, $decimals = 2) {
+        if(is_int($number))
+            return "$number";
+
+        $formatted = number_format($number, $decimals, '.', '');
+        $decStart  = strpos($formatted, '.');
+
+        for($i = $decStart + 1; $i < strlen($formatted); $i++) {
+            if(($substr = substr($formatted, $i)) === ($rep = str_repeat('0', strlen($substr)))) {
+                $toRemove = $i === $decStart + 1 ? '.' . $rep : $rep;
+                return str_replace($toRemove, '', $formatted);
+            }
+        }
+
+        return $formatted;
     }
 
     /**
@@ -266,4 +343,43 @@ class Calculator {
         }
         return 2;
     }
+
+    /**
+     * @param  string    $operator A valid operator.
+     * @param  int|float $a First value.
+     * @param  int|float $b Second value.
+     * @return int|float Result.
+     * @throws \InvalidArgumentException
+     */
+    private function executeOperator($operator, $a, $b) {
+        if($operator === '+') {
+            return $a + $b;
+        }
+        else if($operator === '-') {
+            return $b - $a;
+        }
+        else if($operator === '*') {
+            return $a * $b;
+        }
+        else if($operator === '/') {
+            return $b / $a;
+        }
+        else if($operator === '^') {
+            return pow($b, $a);
+        }
+
+        throw new \InvalidArgumentException('Unknown operator provided');
+    }
+
+    /**
+     * @param  string $functionName
+     * @param  array  $params
+     * @return int|float Result.
+     */
+    private function executeFunction($functionName, $params) {
+        return call_user_func_array($this->_functions[$functionName]['func'], array_reverse($params));
+    }
 }
+
+$c = new Calculator('log(10,999+1)');
+echo $c->calculate();
