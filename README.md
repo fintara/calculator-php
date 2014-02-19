@@ -20,8 +20,9 @@ echo $calculator->calculate();
 ```
 
 ####Advanced usage####
+>Set an expression directly in constructor
 ```php
-$calculator = new Calculator('(7^2)^3'); // Set an expression directly in constructor
+$calculator = new Calculator('(7^2)^3');
 ```
 
 You can add custom functions:
