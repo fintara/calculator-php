@@ -10,19 +10,19 @@ PHP calculator which evaluates different arithmetic expressions:
 The included functions by default are sqrt(x) and log(base, arg), but
 there is also an option to add custom functions with any number of arguments.
 
-####Basic usage####
+###Basic usage###
 ```php
 use \Fintara\Tools\Calculator\Calculator;
 
-$calculator = new Calculator();
-$calculator->setExpression('1+2*3/4');
+$calculator = new Calculator('1+2*3/4');
 echo $calculator->calculate();
 ```
 
-####Advanced usage####
-Set an expression directly in constructor
+###Advanced usage###
+Set the calculator once, use it for different expressions
 ```php
-$calculator = new Calculator('(7^2)^3');
+$calculator = new Calculator();
+$calculator->setExpression('(7^2)^3');
 ```
 
 You can add custom functions:
