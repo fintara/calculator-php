@@ -25,10 +25,40 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
 
         $this->_calculator->setExpression('sqrt(-5)');
         $this->assertEquals(['sqrt', '(', '-5', ')'], $this->_calculator->getTokens());
+
+        $this->_calculator->setExpression('3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3');
+        $this->assertEquals(['3', '+', '4', '*', '2', '/', '(', '1', '-', '5', ')', '^', '2', '^', '3'],
+            $this->_calculator->getTokens());
     }
 
     public function testGetReversedPolishNotation() {
-        // todo
+        $this->_calculator->setExpression('1+2');
+        $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
+        $this->assertEquals('12+', $this->queueToString($queue));
+
+        $this->_calculator->setExpression('1+2-3');
+        $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
+        $this->assertEquals('12+3-', $this->queueToString($queue));
+
+        $this->_calculator->setExpression('3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3');
+        $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
+        $this->assertEquals('342*15-23^^/+', $this->queueToString($queue));
+
+        $this->_calculator->setExpression('3 + 4 * 2 / ( 1 - 5 )');
+        $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
+        $this->assertEquals('342*15-/+', $this->queueToString($queue));
+
+        $this->_calculator->setExpression('5 + ((1 + 2) * 4) - 3');
+        $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
+        $this->assertEquals('512+4*+3-', $this->queueToString($queue));
+    }
+
+    private function queueToString(\SplQueue $queue) {
+        $result = '';
+        while($queue->count() > 0)
+            $result .= $queue->dequeue();
+
+        return $result;
     }
 }
  
