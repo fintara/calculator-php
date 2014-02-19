@@ -2,9 +2,9 @@
 
 PHP calculator which evaluates different arithmetic expressions:
 ```
-2+5.9       -> 7.9
-3.5^(2-5)   -> 0.02332361516035
-5-(2*(1+2)) -> -1
+2+5.9       = 7.9
+3.5^(2-5)   = 0.02332361516035
+5-(2*(1+2)) = -1
 ```
 
 The included functions by default are sqrt(x) and log(base, arg), but
@@ -20,13 +20,12 @@ echo $calculator->calculate();
 ```
 
 ####Advanced usage####
->Set an expression directly in constructor
+Set an expression directly in constructor
 ```php
 $calculator = new Calculator('(7^2)^3');
 ```
 
-
->You can add custom functions:
+You can add custom functions:
 name-of-function (as in expression), implementation, number-of-arguments
 ```php
 $calculator->addFunction('cbrt', function($x) {
