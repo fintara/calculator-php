@@ -37,8 +37,6 @@ class Calculator {
         }
 
         $this->addFunction('sqrt', function($x) { return sqrt($x); }, 1);
-        $this->addFunction('ln', function($x) { return log($x); }, 1);
-        $this->addFunction('lg', function($x) { return log10($x); }, 1);
         $this->addFunction('log', function($base, $arg) { return log($arg, $base); }, 2);
     }
 
@@ -292,13 +290,15 @@ class Calculator {
     /**
      * @param  int|float $number
      * @param  int $decimals
+     * @param  string $decPoint
+     * @param  string $thousandSep
      * @return string
      */
-    public function formatNumber($number, $decimals = 2) {
+    public function formatNumber($number, $decimals = 2, $decPoint = '.', $thousandSep = '') {
         if(ctype_digit("$number"))
             return "$number";
 
-        $formatted = number_format($number, $decimals, '.', '');
+        $formatted = number_format($number, $decimals, $decPoint, $thousandSep);
         $decStart  = strpos($formatted, '.');
 
         for($i = $decStart + 1; $i < strlen($formatted); $i++) {
