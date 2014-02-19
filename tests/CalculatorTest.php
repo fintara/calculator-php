@@ -20,6 +20,9 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
         $this->_calculator->setExpression('1+2-3');
         $this->assertEquals(['1', '+', '2', '-', '3'], $this->_calculator->getTokens());
 
+        $this->_calculator->setExpression('(2.16 - 48.34)^-1');
+        $this->assertEquals(['(', '2.16', '-', '48.34', ')', '^', '-1'], $this->_calculator->getTokens());
+
         $this->_calculator->setExpression('-5*(-5+1)');
         $this->assertEquals(['-5', '*', '(', '-5', '+', '1', ')'], $this->_calculator->getTokens());
 
@@ -35,6 +38,14 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
         $this->_calculator->setExpression('1+2');
         $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
         $this->assertEquals('12+', $this->queueToString($queue));
+
+        $this->_calculator->setExpression('1^-2');
+        $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
+        $this->assertEquals('1-2^', $this->queueToString($queue));
+
+        $this->_calculator->setExpression('1^(-2)');
+        $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
+        $this->assertEquals('1-2^', $this->queueToString($queue));
 
         $this->_calculator->setExpression('1+2-3');
         $queue = $this->_calculator->getReversedPolishNotation($this->_calculator->getTokens());
