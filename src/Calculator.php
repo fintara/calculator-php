@@ -120,8 +120,9 @@ class Calculator {
                 }
                 $tokens[] = $this->_expression[$i];
             }
-            else if($i + 1 < strlen($this->_expression) && in_array($this->_expression[$i], $this->_operators)) {
-                if(in_array($this->_expression[$i + 1], $this->_operators)) {
+            else if(in_array($this->_expression[$i], $this->_operators)) {
+                if($i + 1 < strlen($this->_expression) && $this->_expression[$i] !== '^'
+                    && in_array($this->_expression[$i + 1], $this->_operators)) {
                     throw new \InvalidArgumentException('Invalid expression');
                 }
                 $tokens[] = $this->_expression[$i];
