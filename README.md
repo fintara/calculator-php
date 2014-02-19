@@ -25,7 +25,8 @@ echo $calculator->calculate();
 $calculator = new Calculator('(7^2)^3');
 ```
 
-You can add custom functions:
+
+>You can add custom functions:
 name-of-function (as in expression), implementation, number-of-arguments
 ```php
 $calculator->addFunction('cbrt', function($x) {
