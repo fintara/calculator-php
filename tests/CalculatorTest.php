@@ -50,6 +50,8 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
         $this->executeCalculation('(2.16 - 48.34)^-1', -0.02165);
         $this->executeCalculation('(59 - 15 + 3*6)/21', 2.95238);
         $this->executeCalculation('3-(4-6)', 5);
+        $this->executeCalculation('9 mod 4', 1);
+        $this->executeCalculation('2^3 * 2 mod 8 + 1', 1);
     }
 
     public function testFormatNumber() {
@@ -74,8 +76,9 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
         $queue = $this->_calculator->getReversePolishNotation($this->_calculator->getTokens());
 
         $result = '';
-        while($queue->count() > 0)
+        while($queue->count() > 0) {
             $result .= $queue->dequeue();
+        }
 
         $this->assertEquals($expect, $result);
     }
