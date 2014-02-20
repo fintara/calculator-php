@@ -150,7 +150,7 @@ class Calculator {
                 foreach($this->_functions as $functionName => $function) {
                     if($i + strlen($functionName) < strlen($this->_expression)
                         && substr($this->_expression, $i, strlen($functionName)) === $functionName) {
-                        if(is_numeric($tokens[count($tokens) - 1])) {
+                        if($tokens && is_numeric($tokens[count($tokens) - 1])) {
                             $tokens[] = '*';
                         }
                         $tokens[] = $functionName;
