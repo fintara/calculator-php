@@ -13,7 +13,7 @@ class Calculator {
     /**
      * @var array Possible operators
      */
-    private $_operators = ['+', '-', '*', '/', '^'];
+    private $_operators = ['+', '-', '*', '/', '^', 'mod'];
 
     /**
      * @var array Defined functions.
@@ -43,7 +43,7 @@ class Calculator {
     /**
      * Sets current arithmetic expression.
      *
-     * @param string $expression Arithmetic expression.
+     * @param  string $expression Arithmetic expression.
      * @return Calculator
      */
     public function setExpression($expression) {
@@ -53,11 +53,23 @@ class Calculator {
     }
 
     /**
-     * @param string   $name Name of the function (as in arithmetic expressions).
-     * @param callable $function Interpretation of this function.
-     * @param int      $paramsCount Number of parameters.
+     * @param  string   $name Name of the function (as in arithmetic expressions).
+     * @param  callable $function Interpretation of this function.
+     * @param  int      $paramsCount Number of parameters.
+     * @throws \InvalidArgumentException
      */
     public function addFunction($name, callable $function, $paramsCount) {
+        $name = strtolower(trim($name));
+
+        if(!ctype_alpha(str_replace('_', '', $name))) {
+            throw new \InvalidArgumentException('Only letters and underscore are allowed for a name of a function');
+        }
+        else if(in_array($name, $this->_operators)) {
+            throw new \InvalidArgumentException('Cannot rewrite an operator');
+        }
+
+
+
         if(array_key_exists($name, $this->_functions)) {
             trigger_error("Function with name ($name) has been already added and will be rewritten", E_USER_NOTICE);
         }
@@ -115,10 +127,14 @@ class Calculator {
                 $i--;
             }
             else if(in_array($this->_expression[$i], $this->_brackets)) {
-                if($i - 1 > -1 && $this->_expression[$i] === '(' && is_numeric($this->_expression[$i - 1])) {
+                if($tokens && $this->_expression[$i] === '(' && is_numeric($tokens[count($tokens) - 1])) {
                     $tokens[] = '*';
                 }
+
                 $tokens[] = $this->_expression[$i];
+            }
+            else if($i + 3 < strlen($this->_expression) && substr($this->_expression, $i, 3) === 'mod') {
+                $tokens[] = 'mod';
             }
             else if(in_array($this->_expression[$i], $this->_operators)) {
                 if($i + 1 < strlen($this->_expression) && $this->_expression[$i] !== '^'
@@ -134,6 +150,9 @@ class Calculator {
                 foreach($this->_functions as $functionName => $function) {
                     if($i + strlen($functionName) < strlen($this->_expression)
                         && substr($this->_expression, $i, strlen($functionName)) === $functionName) {
+                        if(is_numeric($tokens[count($tokens) - 1])) {
+                            $tokens[] = '*';
+                        }
                         $tokens[] = $functionName;
                         $i = $i + strlen($functionName) - 1;
                     }
@@ -339,12 +358,15 @@ class Calculator {
         }
 
         if($operator === '^') {
-            return 4;
+            return 6;
         }
         else if($operator === '*' || $operator === '/') {
-            return 3;
+            return 4;
         }
-        return 2;
+        else if($operator === 'mod') {
+            return 2;
+        }
+        return 1;
     }
 
     /**
@@ -360,6 +382,9 @@ class Calculator {
         }
         else if($operator === '-') {
             return $b - $a;
+        }
+        else if($operator === 'mod') {
+            return $b % $a;
         }
         else if($operator === '*') {
             return $a * $b;
