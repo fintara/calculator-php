@@ -5,7 +5,6 @@ use Fintara\Tools\Calculator\Contracts\ILexer;
 
 class Calculator {
     const FUNC_ARG_SEPARATOR = ',';
-    const RETURN_ORIGINAL = -1;
 
     /**
      * @var array Possible brackets
@@ -219,46 +218,15 @@ class Calculator {
     /**
      * Calculates the current arithmetic expression.
      *
-     * @param  int $round Round the result.
-     * @return int|float|string Result of the calculation.
+     * @return int|float Result of the calculation.
      */
-    public function calculate($round = self::RETURN_ORIGINAL) {
+    public function calculate() {
         $tokens = $this->_lexer->getTokens($this->_expression);
         $rpn    = $this->getReversePolishNotation($tokens);
 
         $result = $this->calculateFromRPN($rpn);
 
-        if($round === self::RETURN_ORIGINAL) {
-            return $result;
-        }
-
-
-
-        return $this->formatNumber($result, $round);
-    }
-
-    /**
-     * @param  int|float $number
-     * @param  int $decimals
-     * @param  string $decPoint
-     * @param  string $thousandSep
-     * @return string
-     */
-    public function formatNumber($number, $decimals = 2, $decPoint = '.', $thousandSep = '') {
-        if(ctype_digit("$number"))
-            return "$number";
-
-        $formatted = number_format($number, $decimals, $decPoint, $thousandSep);
-        $decStart  = strpos($formatted, '.');
-
-        for($i = $decStart + 1; $i < strlen($formatted); $i++) {
-            if(($substr = substr($formatted, $i)) === ($rep = str_repeat('0', strlen($substr)))) {
-                $toRemove = $i === $decStart + 1 ? '.' . $rep : $rep;
-                return str_replace($toRemove, '', $formatted);
-            }
-        }
-
-        return $formatted;
+        return $result;
     }
 
     /**
