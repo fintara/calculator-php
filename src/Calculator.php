@@ -77,8 +77,6 @@ class Calculator {
             throw new \InvalidArgumentException('Cannot rewrite an operator');
         }
 
-
-
         if(array_key_exists($name, $this->_functions)) {
             trigger_error("Function with name ($name) has been already added and will be rewritten", E_USER_NOTICE);
         }
@@ -96,7 +94,7 @@ class Calculator {
      */
     public function removeFunction($name) {
         if(!array_key_exists($name, $this->_functions)) {
-            throw new \InvalidArgumentException('There is no function with this name');
+            throw new \InvalidArgumentException('There is no function with this name (' . $name . ')');
         }
 
         unset($this->_functions[$name]);

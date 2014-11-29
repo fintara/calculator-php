@@ -61,7 +61,8 @@ class DefaultLexer implements ILexer {
                 $i--;
             }
             else if(in_array($expression[$i], $this->_brackets)) {
-                if($tokens && $expression[$i] === '(' && is_numeric($tokens[count($tokens) - 1])) {
+                if($tokens && $expression[$i] === '(' &&
+                    (is_numeric($tokens[count($tokens) - 1]) || in_array($tokens[count($tokens) - 1], $this->_brackets))) {
                     $tokens[] = '*';
                 }
 
