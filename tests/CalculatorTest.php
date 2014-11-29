@@ -4,6 +4,8 @@ namespace Fintara\Tools\Calculator\Tests;
 require __DIR__ . '/../vendor/autoload.php';
 
 use Fintara\Tools\Calculator\Calculator;
+use Fintara\Tools\Calculator\Contracts\ILexer;
+use Fintara\Tools\Calculator\DefaultLexer;
 
 class CalculatorTest extends \PHPUnit_Framework_TestCase {
 
@@ -12,26 +14,31 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
      */
     protected $_calculator;
 
+    /**
+     * @var ILexer
+     */
+    protected $_lexer;
+
     public function setUp() {
-        $this->_calculator = new Calculator();
+        $this->_lexer = new DefaultLexer();
+        $this->_calculator = new Calculator($this->_lexer);
     }
 
     public function testGetToken() {
-        $this->_calculator->setExpression('1+2-3');
-        $this->assertEquals(['1', '+', '2', '-', '3'], $this->_calculator->getTokens());
+        $this->assertEquals(['1', '+', '2', '-', '3'],
+            $this->_lexer->getTokens('1+2-3'));
 
-        $this->_calculator->setExpression('(2.16 - 48.34)^-1');
-        $this->assertEquals(['(', '2.16', '-', '48.34', ')', '^', '-1'], $this->_calculator->getTokens());
+        $this->assertEquals(['(', '2.16', '-', '48.34', ')', '^', '-1'],
+            $this->_lexer->getTokens('(2.16 - 48.34)^-1'));
 
-        $this->_calculator->setExpression('-5*(-5+1)');
-        $this->assertEquals(['-5', '*', '(', '-5', '+', '1', ')'], $this->_calculator->getTokens());
+        $this->assertEquals(['-5', '*', '(', '-5', '+', '1', ')'],
+            $this->_lexer->getTokens('-5*(-5+1)'));
 
-        $this->_calculator->setExpression('sqrt(-5)');
-        $this->assertEquals(['sqrt', '(', '-5', ')'], $this->_calculator->getTokens());
+        $this->assertEquals(['sqrt', '(', '-5', ')'],
+            $this->_lexer->getTokens('sqrt(-5)'));
 
-        $this->_calculator->setExpression('3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3');
         $this->assertEquals(['3', '+', '4', '*', '2', '/', '(', '1', '-', '5', ')', '^', '2', '^', '3'],
-            $this->_calculator->getTokens());
+            $this->_lexer->getTokens('3 + 4 * 2 / ( 1 - 5 ) ^ 2 ^ 3'));
     }
 
     public function testGetReversedPolishNotation() {
@@ -73,7 +80,7 @@ class CalculatorTest extends \PHPUnit_Framework_TestCase {
 
     private function executeGetReversePolishNotation($expression, $expect) {
         $this->_calculator->setExpression($expression);
-        $queue = $this->_calculator->getReversePolishNotation($this->_calculator->getTokens());
+        $queue = $this->_calculator->getReversePolishNotation($this->_lexer->getTokens($expression));
 
         $result = '';
         while($queue->count() > 0) {

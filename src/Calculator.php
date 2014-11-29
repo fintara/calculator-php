@@ -1,9 +1,11 @@
 <?php
 namespace Fintara\Tools\Calculator;
 
+use Fintara\Tools\Calculator\Contracts\ILexer;
+
 class Calculator {
-    const RETURN_ORIGINAL = -1;
     const FUNC_ARG_SEPARATOR = ',';
+    const RETURN_ORIGINAL = -1;
 
     /**
      * @var array Possible brackets
@@ -26,15 +28,23 @@ class Calculator {
     private $_expression;
 
     /**
+     * @var ILexer Lexer who tokenizes the expression.
+     */
+    private $_lexer;
+
+    /**
      * Constructor.
      * Sets expression if provided.
      * Sets default functions: sqrt(n), ln(n), log(a,b).
-     * @param null|string $expression Arithmetic expression (not required).
+     * @param ILexer $lexer
      */
-    public function __construct($expression = null) {
-        if($expression) {
-            $this->setExpression($expression);
-        }
+    public function __construct(ILexer $lexer) {
+        $this->_lexer = &$lexer;
+
+        $this->_lexer->setOperators($this->_operators);
+        $this->_lexer->setBrackets($this->_brackets);
+        $this->_lexer->setFunctions($this->_functions);
+        $this->_lexer->setFunctionArgSeparator(self::FUNC_ARG_SEPARATOR);
 
         $this->addFunction('sqrt', function($x) { return sqrt($x); }, 1);
         $this->addFunction('log', function($base, $arg) { return log($arg, $base); }, 2);
@@ -91,87 +101,6 @@ class Calculator {
         }
 
         unset($this->_functions[$name]);
-    }
-
-    /**
-     * Finds all tokens (digits, operators, functions, etc.) in the current
-     * arithmetic expression.
-     *
-     * @return array Array of tokens.
-     * @throws \Exception If no expression is provided.
-     */
-    public function getTokens() {
-        if(!$this->_expression) {
-            throw new \Exception('There is no arithmetic expression provided');
-        }
-
-        $tokens = [];
-        $number = '';
-
-        for($i = 0; $i < strlen($this->_expression); $i++) {
-            if($this->_expression[$i] === '-'
-                && ($i === 0 || $this->_expression[$i - 1] === '(' || $this->_expression[$i - 1] === '^'
-                    || $this->_expression[$i - 1] === self::FUNC_ARG_SEPARATOR)) {
-                $number .= $this->_expression[$i];
-            }
-            else if(ctype_digit($this->_expression[$i]) || $this->_expression[$i] === '.') {
-                $number .= $this->_expression[$i];
-            }
-            else if(!ctype_digit($this->_expression[$i]) && $this->_expression[$i] !== '.' && strlen($number) > 0) {
-                if(!is_numeric($number)) {
-                    throw new \InvalidArgumentException('Invalid float number detected (more than 1 float point?)');
-                }
-
-                $tokens[] = $number;
-                $number   = '';
-                $i--;
-            }
-            else if(in_array($this->_expression[$i], $this->_brackets)) {
-                if($tokens && $this->_expression[$i] === '(' && is_numeric($tokens[count($tokens) - 1])) {
-                    $tokens[] = '*';
-                }
-
-                $tokens[] = $this->_expression[$i];
-            }
-            else if($i + 3 < strlen($this->_expression) && substr($this->_expression, $i, 3) === 'mod') {
-                $tokens[] = 'mod';
-            }
-            else if(in_array($this->_expression[$i], $this->_operators)) {
-                if($i + 1 < strlen($this->_expression) && $this->_expression[$i] !== '^'
-                    && in_array($this->_expression[$i + 1], $this->_operators)) {
-                    throw new \InvalidArgumentException('Invalid expression');
-                }
-                $tokens[] = $this->_expression[$i];
-            }
-            else if($this->_expression[$i] === self::FUNC_ARG_SEPARATOR) {
-                $tokens[] = $this->_expression[$i];
-            }
-            else if(count($this->_functions) > 0) {
-                foreach($this->_functions as $functionName => $function) {
-                    if($i + strlen($functionName) < strlen($this->_expression)
-                        && substr($this->_expression, $i, strlen($functionName)) === $functionName) {
-                        if($tokens && is_numeric($tokens[count($tokens) - 1])) {
-                            $tokens[] = '*';
-                        }
-                        $tokens[] = $functionName;
-                        $i = $i + strlen($functionName) - 1;
-                    }
-                }
-            }
-            else {
-                throw new \InvalidArgumentException("Invalid token occurred ({$this->_expression[$i]})");
-            }
-        }
-
-        if(strlen($number) > 0) {
-            if(!is_numeric($number)) {
-                throw new \InvalidArgumentException('Invalid float number detected (more than 1 float point?)');
-            }
-
-            $tokens[] = $number;
-        }
-
-        return $tokens;
     }
 
     /**
@@ -287,7 +216,6 @@ class Calculator {
         throw new \InvalidArgumentException('Invalid expression');
     }
 
-
     /**
      * Calculates the current arithmetic expression.
      *
@@ -295,7 +223,7 @@ class Calculator {
      * @return int|float|string Result of the calculation.
      */
     public function calculate($round = self::RETURN_ORIGINAL) {
-        $tokens = $this->getTokens();
+        $tokens = $this->_lexer->getTokens($this->_expression);
         $rpn    = $this->getReversePolishNotation($tokens);
 
         $result = $this->calculateFromRPN($rpn);
@@ -303,6 +231,8 @@ class Calculator {
         if($round === self::RETURN_ORIGINAL) {
             return $result;
         }
+
+
 
         return $this->formatNumber($result, $round);
     }
