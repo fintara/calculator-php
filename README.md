@@ -13,36 +13,34 @@ there is also an option to add custom functions with any number of arguments.
 ###Basic usage###
 ```php
 use \Fintara\Tools\Calculator\Calculator;
+use \Fintara\Tools\Calculator\DefaultLexer;
 
-$calculator = new Calculator('1+2*3/4');
-echo $calculator->calculate();
+$calculator = new Calculator(new DefaultLexer());
+$calculator->setExpression('1+2*3/4');
+
+echo $calculator->calculate(); // 2.5
 ```
 
 ###Advanced usage###
-Set the calculator once, use it for different expressions
-```php
-$calculator = new Calculator();
-$calculator->setExpression('(7^2)^3');
-```
-
-You can add custom functions:
-name-of-function (as in expression), implementation, number-of-arguments
+You can add custom functions in the following format:
+`name-of-function` (as in expression), `implementation`, `number-of-arguments`
 ```php
 $calculator->addFunction('cbrt', function($x) {
     return pow($x, 1/3);
 }, 1);
+
 $calculator->setExpression('cbrt(27)');
+
 echo $calculator->calculate(); // 3
 ```
 
-You can also use different parts of the calculator:
+You can also use different parts of the calculator (or lexer):
 ```php
+$lexer = new DefaultLexer();
+
 // Separate tokens
-$tokens = $calculator->getTokens();
+$tokens = $lexer->getTokens('1+2*3'); // [1, '+', 2, '*', 3]
 
 // Rearrange tokens in Postfix notation (returns \SplQueue)
 $rpn = $calculator->getReversePolishNotation($tokens);
-
-// Strips all zeros in the decimal part up to the limit
-$format = $calculator->formatNumber(4.230000, 3); // 4.23
 ```
