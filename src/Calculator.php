@@ -1,103 +1,76 @@
 <?php
 namespace Fintara\Tools\Calculator;
 
-use Fintara\Tools\Calculator\Contracts\ILexer;
-
 class Calculator {
-    const FUNC_ARG_SEPARATOR = ',';
-
-    /**
-     * @var array Possible brackets
-     */
-    private $_brackets  = ['(', ')'];
-
-    /**
-     * @var array Possible operators
-     */
-    private $_operators = ['+', '-', '*', '/', '^', 'mod'];
-
     /**
      * @var array Defined functions.
      */
-    private $_functions = [];
+    private $functions = [];
 
     /**
-     * @var string Current arithmetic expression.
+     * @var TokenizerInterface .
      */
-    private $_expression;
+    private $tokenizer;
 
-    /**
-     * @var ILexer Lexer who tokenizes the expression.
-     */
-    private $_lexer;
+    public static function create() {
+        return new self(new Tokenizer());
+    }
 
     /**
      * Constructor.
      * Sets expression if provided.
      * Sets default functions: sqrt(n), ln(n), log(a,b).
-     * @param ILexer $lexer
+     * @param TokenizerInterface $tokenizer
      */
-    public function __construct(ILexer $lexer) {
-        $this->_lexer = &$lexer;
-
-        $this->_lexer->setOperators($this->_operators);
-        $this->_lexer->setBrackets($this->_brackets);
-        $this->_lexer->setFunctions($this->_functions);
-        $this->_lexer->setFunctionArgSeparator(self::FUNC_ARG_SEPARATOR);
+    public function __construct(TokenizerInterface $tokenizer) {
+        $this->tokenizer = $tokenizer;
 
         $this->addFunction('sqrt', function($x) { return sqrt($x); }, 1);
         $this->addFunction('log', function($base, $arg) { return log($arg, $base); }, 2);
     }
 
     /**
-     * Sets current arithmetic expression.
-     *
-     * @param  string $expression Arithmetic expression.
-     * @return Calculator
-     */
-    public function setExpression($expression) {
-        $this->_expression = str_replace(' ', '', $expression);
-
-        return $this;
-    }
-
-    /**
-     * @param  string   $name Name of the function (as in arithmetic expressions).
+     * @param  string $name Name of the function (as in arithmetic expressions).
      * @param  callable $function Interpretation of this function.
-     * @param  int      $paramsCount Number of parameters.
-     * @throws \InvalidArgumentException
+     * @param  int $paramsCount Number of parameters.
+     * @throws \Exception
      */
-    public function addFunction($name, callable $function, $paramsCount) {
+    public function addFunction(string $name, callable $function, int $paramsCount) {
         $name = strtolower(trim($name));
 
         if(!ctype_alpha(str_replace('_', '', $name))) {
             throw new \InvalidArgumentException('Only letters and underscore are allowed for a name of a function');
         }
-        else if(in_array($name, $this->_operators)) {
-            throw new \InvalidArgumentException('Cannot rewrite an operator');
+
+        if(array_key_exists($name, $this->functions)) {
+            throw new \Exception(sprintf('Function %s exists', $name));
         }
 
-        if(array_key_exists($name, $this->_functions)) {
-            trigger_error("Function with name ($name) has been already added and will be rewritten", E_USER_NOTICE);
-        }
-
-        $this->_functions[$name] = [
+        $this->functions[$name] = [
             'func'        => $function,
             'paramsCount' => $paramsCount,
         ];
     }
 
     /**
-     * @param  string $name Name of function.
-     * @throws \Exception
-     * @throws \InvalidArgumentException
+     * @param string $name Name of the function.
+     * @param callable $function Interpretation.
+     * @param int $paramsCount Number of parameters.
      */
-    public function removeFunction($name) {
-        if(!array_key_exists($name, $this->_functions)) {
-            throw new \InvalidArgumentException('There is no function with this name (' . $name . ')');
+    public function replaceFunction(string $name, callable $function, int $paramsCount) {
+        $this->removeFunction($name);
+        $this->addFunction($name, $function, $paramsCount);
+    }
+
+    /**
+     * @param  string $name Name of function.
+     */
+    public function removeFunction(string $name) {
+        if(!array_key_exists($name, $this->functions)) {
+            return;
         }
 
-        unset($this->_functions[$name]);
+        unset($this->functions[$name]);
     }
 
     /**
@@ -108,7 +81,7 @@ class Calculator {
      * @return \SplQueue
      * @throws \InvalidArgumentException
      */
-    public function getReversePolishNotation(array $tokens) {
+    private function getReversePolishNotation(array $tokens) {
         $queue = new \SplQueue();
         $stack = new \SplStack();
 
@@ -118,21 +91,21 @@ class Calculator {
                 // (string + 0) converts to int or float
                 $queue->enqueue($tokens[$i] + 0);
             }
-            else if(array_key_exists($tokens[$i], $this->_functions)) {
+            else if(array_key_exists($tokens[$i], $this->functions)) {
                 $stack->push($tokens[$i]);
             }
-            else if($tokens[$i] === self::FUNC_ARG_SEPARATOR) {
+            else if($tokens[$i] === Tokens::ARG_SEPARATOR) {
                 // checking whether stack contains left parenthesis (dirty hack)
-                if(substr_count($stack->serialize(), '(') === 0) {
+                if(substr_count($stack->serialize(), Tokens::PAREN_LEFT) === 0) {
                     throw new \InvalidArgumentException('Parenthesis are misplaced');
                 }
 
-                while($stack->top() != '(') {
+                while($stack->top() != Tokens::PAREN_LEFT) {
                     $queue->enqueue($stack->pop());
                 }
             }
-            else if(in_array($tokens[$i], $this->_operators)) {
-                while($stack->count() > 0 && in_array($stack->top(), $this->_operators)
+            else if(in_array($tokens[$i], Tokens::OPERATORS)) {
+                while($stack->count() > 0 && in_array($stack->top(), Tokens::OPERATORS)
                     && (($this->isOperatorLeftAssociative($tokens[$i])
                         && $this->getOperatorPrecedence($tokens[$i]) === $this->getOperatorPrecedence($stack->top()))
                     || ($this->getOperatorPrecedence($tokens[$i]) < $this->getOperatorPrecedence($stack->top())))) {
@@ -141,22 +114,22 @@ class Calculator {
 
                 $stack->push($tokens[$i]);
             }
-            else if($tokens[$i] === '(') {
-                $stack->push('(');
+            else if($tokens[$i] === Tokens::PAREN_LEFT) {
+                $stack->push(Tokens::PAREN_LEFT);
             }
-            else if($tokens[$i] === ')') {
+            else if($tokens[$i] === Tokens::PAREN_RIGHT) {
                 // checking whether stack contains left parenthesis (dirty hack)
-                if(substr_count($stack->serialize(), '(') === 0) {
+                if(substr_count($stack->serialize(), Tokens::PAREN_LEFT) === 0) {
                     throw new \InvalidArgumentException('Parenthesis are misplaced');
                 }
 
-                while($stack->top() != '(') {
+                while($stack->top() != Tokens::PAREN_LEFT) {
                     $queue->enqueue($stack->pop());
                 }
 
                 $stack->pop();
 
-                if($stack->count() > 0 && array_key_exists($stack->top(), $this->_functions)) {
+                if($stack->count() > 0 && array_key_exists($stack->top(), $this->functions)) {
                     $queue->enqueue($stack->pop());
                 }
             }
@@ -176,7 +149,7 @@ class Calculator {
      * @return int|float Result of the calculation.
      * @throws \InvalidArgumentException
      */
-    public function calculateFromRPN(\SplQueue $queue) {
+    private function calculateFromRPN(\SplQueue $queue) {
         $stack = new \SplStack();
 
         while($queue->count() > 0) {
@@ -185,19 +158,19 @@ class Calculator {
                 $stack->push($currentToken);
             }
             else {
-                if(in_array($currentToken, $this->_operators)) {
+                if(in_array($currentToken, Tokens::OPERATORS)) {
                     if($stack->count() < 2) {
                         throw new \InvalidArgumentException('Invalid expression');
                     }
                     $stack->push($this->executeOperator($currentToken, $stack->pop(), $stack->pop()));
                 }
-                else if(array_key_exists($currentToken, $this->_functions)) {
-                    if($stack->count() < $this->_functions[$currentToken]['paramsCount']) {
+                else if(array_key_exists($currentToken, $this->functions)) {
+                    if($stack->count() < $this->functions[$currentToken]['paramsCount']) {
                         throw new \InvalidArgumentException('Invalid expression');
                     }
 
                     $params = [];
-                    for($i = 0; $i < $this->_functions[$currentToken]['paramsCount']; $i++) {
+                    for($i = 0; $i < $this->functions[$currentToken]['paramsCount']; $i++) {
                         $params[] = $stack->pop();
                     }
 
@@ -216,10 +189,11 @@ class Calculator {
     /**
      * Calculates the current arithmetic expression.
      *
-     * @return int|float Result of the calculation.
+     * @param string $expression
+     * @return float|int Result of the calculation.
      */
-    public function calculate() {
-        $tokens = $this->_lexer->getTokens($this->_expression);
+    public function calculate(string $expression) {
+        $tokens = $this->tokenizer->tokenize($expression, array_keys($this->functions));
         $rpn    = $this->getReversePolishNotation($tokens);
 
         $result = $this->calculateFromRPN($rpn);
@@ -233,11 +207,11 @@ class Calculator {
      * @throws \InvalidArgumentException
      */
     private function isOperatorLeftAssociative($operator) {
-        if(!in_array($operator, $this->_operators)) {
+        if(!in_array($operator, Tokens::OPERATORS)) {
             throw new \InvalidArgumentException("Cannot check association of $operator operator");
         }
 
-        if($operator === '^')
+        if($operator === Tokens::POW)
             return false;
 
         return true;
@@ -249,17 +223,17 @@ class Calculator {
      * @throws \InvalidArgumentException
      */
     private function getOperatorPrecedence($operator) {
-        if(!in_array($operator, $this->_operators)) {
+        if(!in_array($operator, Tokens::OPERATORS)) {
             throw new \InvalidArgumentException("Cannot check precedence of $operator operator");
         }
 
-        if($operator === '^') {
+        if($operator === Tokens::POW) {
             return 6;
         }
-        else if($operator === '*' || $operator === '/') {
+        else if($operator === Tokens::MULT || $operator === Tokens::DIV) {
             return 4;
         }
-        else if($operator === 'mod') {
+        else if($operator === Tokens::MOD) {
             return 2;
         }
         return 1;
@@ -273,25 +247,25 @@ class Calculator {
      * @throws \InvalidArgumentException
      */
     private function executeOperator($operator, $a, $b) {
-        if($operator === '+') {
+        if($operator === Tokens::PLUS) {
             return $a + $b;
         }
-        else if($operator === '-') {
+        else if($operator === Tokens::MINUS) {
             return $b - $a;
         }
-        else if($operator === 'mod') {
+        else if($operator === Tokens::MOD) {
             return $b % $a;
         }
-        else if($operator === '*') {
+        else if($operator === Tokens::MULT) {
             return $a * $b;
         }
-        else if($operator === '/') {
+        else if($operator === Tokens::DIV) {
             if($a === 0) {
                 throw new \InvalidArgumentException('Division by zero occured');
             }
             return $b / $a;
         }
-        else if($operator === '^') {
+        else if($operator === Tokens::POW) {
             return pow($b, $a);
         }
 
@@ -304,6 +278,6 @@ class Calculator {
      * @return int|float Result.
      */
     private function executeFunction($functionName, $params) {
-        return call_user_func_array($this->_functions[$functionName]['func'], array_reverse($params));
+        return call_user_func_array($this->functions[$functionName]['func'], array_reverse($params));
     }
 }
