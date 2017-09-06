@@ -18,14 +18,14 @@ class CalculatorTest extends TestCase {
      * @expectedException \Exception
      */
     public function testDoubleAddingSameNameFunction() {
-        $this->calculator->addFunction('testfunc', function() {}, 0);
-        $this->calculator->addFunction('testfunc', function() {}, 0);
+        $this->calculator->addFunction('testfunc', function() {});
+        $this->calculator->addFunction('testfunc', function() {});
     }
 
     public function testRemoveFunction() {
-        $this->calculator->addFunction('testfunc', function() {}, 0);
+        $this->calculator->addFunction('testfunc', function() {});
         $this->calculator->removeFunction('testfunc');
-        $this->calculator->addFunction('testfunc', function() {}, 0);
+        $this->calculator->addFunction('testfunc', function() {});
 
         $this->assertTrue(true);
     }
@@ -35,7 +35,7 @@ class CalculatorTest extends TestCase {
      * @expectedExceptionMessage    Only letters and underscore are allowed for a name of a function
      */
     public function testInvalidFunctionName() {
-        $this->calculator->addFunction('123', function() {}, 0);
+        $this->calculator->addFunction('123', function() {});
     }
 
     /**
@@ -63,7 +63,7 @@ class CalculatorTest extends TestCase {
     public function testCustomFunction() {
         $this->calculator->addFunction('plus_one', function($num) {
             return $num + 1;
-        }, 1);
+        });
 
         $result = $this->calculator->calculate('1 + plus_one(1)');
         $this->assertEquals(3, $result);
@@ -72,11 +72,11 @@ class CalculatorTest extends TestCase {
     public function testReplaceFunction() {
         $this->calculator->addFunction('plus_one', function($num) {
             return $num + 10;
-        }, 1);
+        });
 
         $this->calculator->replaceFunction('plus_one', function($num) {
             return $num + 1;
-        }, 1);
+        });
 
         $result = $this->calculator->calculate('1 + plus_one(1)');
         $this->assertEquals(3, $result);

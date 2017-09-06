@@ -40,6 +40,13 @@ class TokenizerTest extends TestCase {
         $this->tokenizer->tokenize('1.2.3');
     }
 
+    /**
+     * @expectedException           \InvalidArgumentException
+     */
+    public function testInvalidToken() {
+        $this->tokenizer->tokenize('1 & 2');
+    }
+
     public function testGetToken() {
         $functionNames = ['sqrt', 'log'];
 

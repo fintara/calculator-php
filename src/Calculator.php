@@ -25,17 +25,16 @@ class Calculator {
     public function __construct(TokenizerInterface $tokenizer) {
         $this->tokenizer = $tokenizer;
 
-        $this->addFunction('sqrt', function($x) { return sqrt($x); }, 1);
-        $this->addFunction('log', function($base, $arg) { return log($arg, $base); }, 2);
+        $this->addFunction('sqrt', function($x) { return sqrt($x); });
+        $this->addFunction('log', function($base, $arg) { return log($arg, $base); });
     }
 
     /**
      * @param  string $name Name of the function (as in arithmetic expressions).
      * @param  callable $function Interpretation of this function.
-     * @param  int $paramsCount Number of parameters.
      * @throws \Exception
      */
-    public function addFunction(string $name, callable $function, int $paramsCount) {
+    public function addFunction(string $name, callable $function) {
         $name = strtolower(trim($name));
 
         if(!ctype_alpha(str_replace('_', '', $name))) {
@@ -46,6 +45,9 @@ class Calculator {
             throw new \Exception(sprintf('Function %s exists', $name));
         }
 
+        $reflection = new \ReflectionFunction($function);
+        $paramsCount = $reflection->getNumberOfRequiredParameters();
+
         $this->functions[$name] = [
             'func'        => $function,
             'paramsCount' => $paramsCount,
@@ -55,11 +57,10 @@ class Calculator {
     /**
      * @param string $name Name of the function.
      * @param callable $function Interpretation.
-     * @param int $paramsCount Number of parameters.
      */
-    public function replaceFunction(string $name, callable $function, int $paramsCount) {
+    public function replaceFunction(string $name, callable $function) {
         $this->removeFunction($name);
-        $this->addFunction($name, $function, $paramsCount);
+        $this->addFunction($name, $function);
     }
 
     /**

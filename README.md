@@ -21,12 +21,14 @@ echo $calculator->calculate('1+2*3/4'); // 2.5
 ### Advanced usage
 
 #### Custom functions
-You can add custom functions in the following format:
-`name-of-function` (as in expression), `implementation`, `number-of-arguments`
+You can add custom functions:
+* `name`: name of the function, as it will be used in expressions.
+All lower case and _ (underscore) allowed.
+* `implementation`: how to evaluate the function.
 ```php
 $calculator->addFunction('cbrt', function($x) {
     return pow($x, 1/3);
-}, 1);
+});
 
 echo $calculator->calculate('cbrt(27)'); // 3
 ```
@@ -51,6 +53,8 @@ parenthesis (if the sign is not found).
 ### Changelog
 2.0.0
 * Breaking: operator `mod` is renamed to `%`.
+* Breaking: `addFunction` does not need number of arguments anymore 
+(removed 3rd argument).
 * Breaking: adding function with existing name throws. 
 You can use the helper `replaceFunction`.
 * Breaking: `getReversePolishNotation` is private.
