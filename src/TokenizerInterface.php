@@ -13,8 +13,8 @@ interface TokenizerInterface
 {
     /**
      * @param string $expression
-     * @param array $functionNames
+     * @param array $customTokens
      * @return array Tokens of $expression
      */
-    public function tokenize(string $expression, array $functionNames = []): array;
+    public function tokenize(string $expression, array $customTokens = []): array;
 }

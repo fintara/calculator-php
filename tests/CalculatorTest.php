@@ -60,6 +60,13 @@ class CalculatorTest extends TestCase {
         $this->calculator->calculate('1/0');
     }
 
+    /**
+     * @expectedException           \Exception
+     */
+    public function testRedeclareFunctionAsVariable() {
+        $this->calculator->calculate('5 + sqrt(1)', ['sqrt' => 5]);
+    }
+
     public function testCustomFunction() {
         $this->calculator->addFunction('plus_one', function($num) {
             return $num + 1;
@@ -98,6 +105,16 @@ class CalculatorTest extends TestCase {
 
     private function executeCalculation($expression, $expect) {
         $result = $this->calculator->calculate($expression);
+        $this->assertEquals($expect, $result, $expression);
+    }
+
+    public function testCalculateWithVariables() {
+        $this->executeCalculationWithVariables('1 + x', ['x' => 5], 6);
+        $this->executeCalculationWithVariables('x^2 - x', ['x' => 3], 6);
+    }
+
+    private function executeCalculationWithVariables($expression, array $variables, $expect) {
+        $result = $this->calculator->calculate($expression, $variables);
         $this->assertEquals($expect, $result, $expression);
     }
 }

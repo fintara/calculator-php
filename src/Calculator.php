@@ -191,15 +191,42 @@ class Calculator {
      * Calculates the current arithmetic expression.
      *
      * @param string $expression
+     * @param array $variables
      * @return float|int Result of the calculation.
+     * @throws \Exception
      */
-    public function calculate(string $expression) {
-        $tokens = $this->tokenizer->tokenize($expression, array_keys($this->functions));
+    public function calculate(string $expression, array $variables = []) {
+        $customTokens = array_keys($this->functions);
+
+        foreach ($variables as $variable => $value) {
+            if (in_array($variable, $customTokens)) {
+                throw new \Exception(sprintf('Cannot redeclare function \'%s\' as variable', $variable));
+            }
+            $customTokens[] = $variable;
+        }
+
+        $tokens = $this->tokenizer->tokenize($expression, $customTokens);
+        $tokens = $this->applyVariables($tokens, $variables);
         $rpn    = $this->getReversePolishNotation($tokens);
 
         $result = $this->calculateFromRPN($rpn);
 
         return $result;
+    }
+
+    private function applyVariables(array $tokens, array $variables): array {
+        if (empty($variables)) {
+            return $tokens;
+        }
+
+        foreach ($variables as $name => $value) {
+            $keys = array_keys($tokens, $name, true);
+            foreach ($keys as $key) {
+                $tokens[$key] = $value;
+            }
+        }
+
+        return $tokens;
     }
 
     /**

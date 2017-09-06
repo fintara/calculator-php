@@ -12,68 +12,75 @@ class Tokenizer implements TokenizerInterface
 {
     /**
      * @param string $expression
-     * @param array $functionNames
+     * @param array $customTokens Function names, variables, etc.
      * @return array Tokens of $expression
      * @throws \Exception
      */
-    public function tokenize(string $expression, array $functionNames = []): array
+    public function tokenize(string $expression, array $customTokens = []): array
     {
+        $expression = preg_replace('/\s*/', '', $expression);
         $exprLength = strlen($expression);
 
         $tokens = [];
         $numberBuffer = '';
+        $varBuffer = '';
 
         for($i = 0; $i < $exprLength; $i++) {
-            if($expression[$i] === Tokens::MINUS
+            $char = $expression[$i];
+
+            if($char === Tokens::MINUS
                 && ($i === 0 || $expression[$i - 1] === Tokens::PAREN_LEFT || $expression[$i - 1] === Tokens::POW
                     || $expression[$i - 1] === Tokens::ARG_SEPARATOR)) {
-                $numberBuffer .= $expression[$i];
+                $numberBuffer .= $char;
             }
-            else if(ctype_digit($expression[$i]) || $expression[$i] === Tokens::FLOAT_POINT) {
-                $numberBuffer .= $expression[$i];
+            else if(ctype_digit($char) || $char === Tokens::FLOAT_POINT) {
+                $numberBuffer .= $char;
             }
-            else if(!ctype_digit($expression[$i]) && $expression[$i] !== Tokens::FLOAT_POINT && strlen($numberBuffer) > 0) {
+            else if(!ctype_digit($char) && $char !== Tokens::FLOAT_POINT && strlen($numberBuffer) > 0) {
                 if(!is_numeric($numberBuffer)) {
                     throw new \InvalidArgumentException('Invalid float number detected (more than 1 float point?)');
                 }
 
-                $tokens[] = $numberBuffer;
+                $tokens[] = $this->parseNumber($numberBuffer);
                 $numberBuffer   = '';
                 $i--;
             }
-            else if(in_array($expression[$i], Tokens::PARENTHESES)) {
-                if($tokens && $expression[$i] === Tokens::PAREN_LEFT &&
+            else if(in_array($char, Tokens::PARENTHESES)) {
+                if($tokens && $char === Tokens::PAREN_LEFT &&
                     (is_numeric($tokens[count($tokens) - 1]) || in_array($tokens[count($tokens) - 1], Tokens::PARENTHESES))) {
                     $tokens[] = Tokens::MULT;
                 }
 
-                $tokens[] = $expression[$i];
+                $tokens[] = $char;
             }
-            else if(in_array($expression[$i], Tokens::OPERATORS)) {
-                if($i + 1 < $exprLength && $expression[$i] !== Tokens::POW
+            else if(in_array($char, Tokens::OPERATORS)) {
+                if($i + 1 < $exprLength && $char !== Tokens::POW
                     && in_array($expression[$i + 1], Tokens::OPERATORS)) {
                     throw new \InvalidArgumentException('Invalid expression');
                 }
-                $tokens[] = $expression[$i];
+                $tokens[] = $char;
             }
-            else if($expression[$i] === Tokens::ARG_SEPARATOR) {
-                $tokens[] = $expression[$i];
+            else if($char === Tokens::ARG_SEPARATOR) {
+                $tokens[] = $char;
             }
-            else if(count($functionNames) > 0) {
-                foreach($functionNames as $functionName) {
-                    $nameLength = strlen($functionName);
-                    if($i + $nameLength < $exprLength
-                        && substr($expression, $i, $nameLength) === $functionName) {
+            else {
+                $found = false;
+                foreach($customTokens as $name) {
+                    $nameLength = strlen($name);
+                    if($i + $nameLength <= $exprLength
+                        && substr($expression, $i, $nameLength) === $name) {
                         if($tokens && is_numeric($tokens[count($tokens) - 1])) {
                             $tokens[] = Tokens::MULT;
                         }
-                        $tokens[] = $functionName;
+                        $tokens[] = $name;
                         $i = $i + $nameLength - 1;
+                        $found = true;
+                        break;
                     }
                 }
-            }
-            else {
-                throw new \InvalidArgumentException("Invalid token occurred ({$expression[$i]})");
+                if (!$found) {
+                    throw new \InvalidArgumentException("Invalid token occurred '{$char}'");
+                }
             }
         }
 
@@ -82,9 +89,21 @@ class Tokenizer implements TokenizerInterface
                 throw new \InvalidArgumentException('Invalid float number detected (more than 1 float point?)');
             }
 
-            $tokens[] = $numberBuffer;
+            $tokens[] = $this->parseNumber($numberBuffer);
         }
 
         return $tokens;
+    }
+
+    /**
+     * @param string $buffer
+     * @return int | float
+     */
+    private function parseNumber(string $buffer) {
+        if (strstr($buffer, Tokens::FLOAT_POINT) !== false) {
+            return floatval($buffer);
+        }
+
+        return intval($buffer);
     }
 }
