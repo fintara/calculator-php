@@ -46,9 +46,12 @@ the tokenizer needs to know all functions' names as second parameter.
 $tokens = $tokenizer->tokenize('1+sqrt(4)', ['sqrt']); // [1, '+', 'sqrt', '(', 4, ')']
 ```
 
-Note: The default tokenizer automatically adds `*` (multiplication) 
+__Note:__ The default tokenizer automatically adds `*` (multiplication) 
 sign between a number and following function or a number and following 
 parenthesis (if the sign is not found). 
+```php
+$tokens = $tokenizer->tokenize('2 (1 + 3)'); // [2, '*', '(', 1, '+', 3, ')']
+```
 
 ### Changelog
 2.0.0
