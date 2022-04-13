@@ -33,34 +33,37 @@ $calculator->addFunction('cbrt', function($x) {
 echo $calculator->calculate('cbrt(27)'); // 3
 ```
 
-#### Tokenizer 
+#### Tokenizer
 You can also use the tokenizer (or supply calculator with your own):
 ```php
 $tokenizer = new Tokenizer();
 $tokens = $tokenizer->tokenize('1+2*3.5'); // [1, '+', 2, '*', 3.5]
 ```
 
-In case the expression contains functions (e.g. `sqrt(x)`), 
+In case the expression contains functions (e.g. `sqrt(x)`),
 the tokenizer needs to know all functions' names as second parameter.
 ```php
 $tokens = $tokenizer->tokenize('1+sqrt(4)', ['sqrt']); // [1, '+', 'sqrt', '(', 4, ')']
 ```
 
-__Note:__ The default tokenizer automatically adds `*` (multiplication) 
-sign between a number and following function or a number and following 
-parenthesis (if the sign is not found). 
+__Note:__ The default tokenizer automatically adds `*` (multiplication)
+sign between a number and following function or a number and following
+parenthesis (if the sign is not found).
 ```php
 $tokens = $tokenizer->tokenize('2 (1 + 3)'); // [2, '*', '(', 1, '+', 3, ')']
 ```
 
 ### Changelog
+2.0.1
+* Added LICENSE
+
 2.0.0
 * Breaking: operator `mod` is renamed to `%`.
-* Breaking: `addFunction` does not need number of arguments anymore 
+* Breaking: `addFunction` does not need number of arguments anymore
 (removed 3rd argument).
-* Breaking: adding function with existing name throws. 
+* Breaking: adding function with existing name throws.
 You can use the helper `replaceFunction`.
 * Breaking: `getReversePolishNotation` is private.
 * Breaking: `setExpression` is removed. Use directly `calculate($expression)`.
-* Breaking: `ILexer` and `DefaultLexer` are replaced with 
+* Breaking: `ILexer` and `DefaultLexer` are replaced with
 `TokenizerInterface` and `Tokenizer` respectively.
