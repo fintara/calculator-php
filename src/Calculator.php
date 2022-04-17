@@ -25,8 +25,8 @@ class Calculator {
     public function __construct(TokenizerInterface $tokenizer) {
         $this->tokenizer = $tokenizer;
 
-        $this->addFunction('sqrt', function($x) { return sqrt($x); });
-        $this->addFunction('log', function($base, $arg) { return log($arg, $base); });
+        $this->addFunction('sqrt', function(float $x) { return sqrt($x); });
+        $this->addFunction('log', function(float $base, float $arg) { return log($arg, $base); });
     }
 
     /**
@@ -86,14 +86,23 @@ class Calculator {
         $queue = new \SplQueue();
         $stack = new \SplStack();
 
+        $isFuncArgs = 0;
+        $funcArgsCount = [];
         $tokensCount = count($tokens);
         for($i = 0; $i < $tokensCount; $i++) {
             if(is_numeric($tokens[$i])) {
                 // (string + 0) converts to int or float
-                $queue->enqueue($tokens[$i] + 0);
+                $queue->enqueue(floatval($tokens[$i]));
+                if ($isFuncArgs) {
+                    if (!array_key_exists($isFuncArgs, $funcArgsCount)) {
+                        $funcArgsCount[$isFuncArgs] = 0;
+                    }
+                    $funcArgsCount[$isFuncArgs]++;
+                }
             }
             else if(array_key_exists($tokens[$i], $this->functions)) {
                 $stack->push($tokens[$i]);
+                $isFuncArgs++;
             }
             else if($tokens[$i] === Tokens::ARG_SEPARATOR) {
                 // checking whether stack contains left parenthesis (dirty hack)
@@ -124,13 +133,14 @@ class Calculator {
                     throw new \InvalidArgumentException('Parenthesis are misplaced');
                 }
 
-                $cnt = 0;
                 while($stack->top() != Tokens::PAREN_LEFT) {
                     $queue->enqueue($stack->pop());
-                    $cnt++;
                 }
 
-                $queue->enqueue('|' . $cnt);
+                if ($isFuncArgs > 0) {
+                    $queue->enqueue('|' . (isset($funcArgsCount[$isFuncArgs]) ? $funcArgsCount[$isFuncArgs] : 0));
+                    $isFuncArgs--;
+                }
 
                 $stack->pop();
 
@@ -157,8 +167,6 @@ class Calculator {
     private function calculateFromRPN(\SplQueue $queue) {
         $stack = new \SplStack();
 
-        var_dump($queue);
-
         while($queue->count() > 0) {
             $currentToken = $queue->dequeue();
             if(is_numeric($currentToken) || $currentToken[0] === '|') {
@@ -176,30 +184,24 @@ class Calculator {
                         throw new \InvalidArgumentException('Invalid expression: stack has less values than required params count');
                     }
 
-                    $params = [];
+                    $paramsCount = 0;
                     if ($this->functions[$currentToken]['paramsCount'] > 0) {
-                        for($i = 0; $i < $this->functions[$currentToken]['paramsCount']; $i++) {
-                            $params[] = $stack->pop();
-                        }
-                    } else if (is_string($stack->top()) && $stack->top()[0] === '|') {
-                        $a = intval(substr($stack->pop(), 1));
-                        for($i = 0; $i < $a; $i++) {
-                            $params[] = $stack->pop();
-                        }
-                        // var_dump($currentToken);
-                        // var_dump($stack);
-                        // var_dump($stack->top());
-                        // while ($stack->count() > 0 && $stack->top() !== '|') {
-                        //     $params[] = $stack->pop();
-                        // }
-                        // $stack->pop();
+                        $stack->pop(); // |cnt
+                        $paramsCount = $this->functions[$currentToken]['paramsCount'];
+                    } else {
+                        $paramsCount = intval(substr($stack->pop(), 1));
+                    }
+
+                    $params = [];
+                    for($i = 0; $i < $paramsCount; $i++) {
+                        $params[] = floatval($stack->pop());
                     }
 
                     if(count($params) === 0) {
                         throw new \InvalidArgumentException('Invalid expression: custom function without params');
                     }
 
-                    $stack->push($this->executeFunction($currentToken, $params));
+                    $stack->push($this->executeFunction((string)$currentToken, $params));
                 }
             }
         }
@@ -285,7 +287,7 @@ class Calculator {
             return $a * $b;
         }
         else if($operator === Tokens::DIV) {
-            if($a === 0) {
+            if($a === 0.0) {
                 throw new \InvalidArgumentException('Division by zero occured');
             }
             return $b / $a;
@@ -302,7 +304,7 @@ class Calculator {
      * @param  array  $params
      * @return int|float Result.
      */
-    private function executeFunction($functionName, $params) {
+    private function executeFunction(string $functionName, array $params) {
         return call_user_func_array($this->functions[$functionName]['func'], array_reverse($params));
     }
 }

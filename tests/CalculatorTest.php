@@ -56,7 +56,7 @@ class CalculatorTest extends TestCase {
     }
 
     public function testCustomFunction() {
-        $this->calculator->addFunction('plus_one', function($num) {
+        $this->calculator->addFunction('plus_one', function(float $num) {
             return $num + 1;
         });
 
@@ -69,8 +69,8 @@ class CalculatorTest extends TestCase {
             return max(...$a);
         });
 
-        $result = $this->calculator->calculate('1 + max(2, 4, 3)');
-        $this->assertEquals(5, $result);
+        $result = $this->calculator->calculate('1 + max(2, 4, 3) + 10');
+        $this->assertEquals(15, $result);
     }
 
     public function testReplaceFunction() {
@@ -95,6 +95,7 @@ class CalculatorTest extends TestCase {
         $this->executeCalculation('9 % 4', 1);
         $this->executeCalculation('2^3 * 2 % 8 + 1', 1);
         $this->executeCalculation('sqrt(4)', 2);
+        $this->executeCalculation('sqrt(sqrt(16))', 2);
         $this->executeCalculation('5sqrt(4)', 10);
         $this->executeCalculation('log(3,(3*3))', 2);
         $this->executeCalculation('10sqrt(log(3,9)^2)', 20);
