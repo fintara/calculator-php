@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace Fintara\Tools\Calculator\Tests;
 
 use \PHPUnit\Framework\TestCase;
@@ -10,14 +10,13 @@ class CalculatorTest extends TestCase {
     protected $calculator;
 
 
-    public function setUp() {
+    protected function setUp(): void {
         $this->calculator = Calculator::create();
     }
 
-    /**
-     * @expectedException \Exception
-     */
     public function testDoubleAddingSameNameFunction() {
+        $this->expectException(\Exception::class);
+
         $this->calculator->addFunction('testfunc', function() {});
         $this->calculator->addFunction('testfunc', function() {});
     }
@@ -30,33 +29,29 @@ class CalculatorTest extends TestCase {
         $this->assertTrue(true);
     }
 
-    /**
-     * @expectedException           \InvalidArgumentException
-     * @expectedExceptionMessage    Only letters and underscore are allowed for a name of a function
-     */
     public function testInvalidFunctionName() {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Only letters and underscore are allowed for a name of a function");
+
         $this->calculator->addFunction('123', function() {});
     }
 
-    /**
-     * @expectedException           \InvalidArgumentException
-     */
     public function testMisplacedParenthesis() {
+        $this->expectException(\InvalidArgumentException::class);
+
         $this->calculator->calculate(')5(');
     }
 
-    /**
-     * @expectedException           \InvalidArgumentException
-     */
     public function testMisplacedParenthesisWithFuncArgSep() {
+        $this->expectException(\InvalidArgumentException::class);
+
         $this->calculator->calculate(',5');
     }
 
-    /**
-     * @expectedException           \InvalidArgumentException
-     * @expectedExceptionMessage    Division by zero occured
-     */
     public function testDivisionByZero() {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Division by zero occured");
+
         $this->calculator->calculate('1/0');
     }
 
@@ -67,6 +62,15 @@ class CalculatorTest extends TestCase {
 
         $result = $this->calculator->calculate('1 + plus_one(1)');
         $this->assertEquals(3, $result);
+    }
+
+    public function testCustomVarargFunction() {
+        $this->calculator->addFunction('max', function (float ...$a) : float {
+            return max(...$a);
+        });
+
+        $result = $this->calculator->calculate('1 + max(2, 4, 3)');
+        $this->assertEquals(5, $result);
     }
 
     public function testReplaceFunction() {

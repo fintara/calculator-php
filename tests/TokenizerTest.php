@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace Fintara\Tools\Calculator\Tests;
 
 use PHPUnit\Framework\TestCase;
@@ -12,38 +12,34 @@ class TokenizerTest extends TestCase {
      */
     private $tokenizer;
 
-    public function setUp() {
+    protected function setUp(): void {
         $this->tokenizer = new Tokenizer();
     }
 
-    /**
-     * @expectedException           \InvalidArgumentException
-     * @expectedExceptionMessage    Invalid expression
-     */
     public function testGetTokenDoubleOperators() {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid expression");
+
         $this->tokenizer->tokenize('1++2');
     }
 
-    /**
-     * @expectedException           \InvalidArgumentException
-     * @expectedExceptionMessage    Invalid float number detected (more than 1 float point?)
-     */
     public function testGetTokenNonNumericValueInside() {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid float number detected (more than 1 float point?");
+
         $this->tokenizer->tokenize('1.2.3 + 5');
     }
 
-    /**
-     * @expectedException           \InvalidArgumentException
-     * @expectedExceptionMessage    Invalid float number detected (more than 1 float point?)
-     */
     public function testGetTokenNonNumericValueEnd() {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid float number detected (more than 1 float point?");
+
         $this->tokenizer->tokenize('1.2.3');
     }
 
-    /**
-     * @expectedException           \InvalidArgumentException
-     */
     public function testInvalidToken() {
+        $this->expectException(\InvalidArgumentException::class);
+
         $this->tokenizer->tokenize('1 & 2');
     }
 

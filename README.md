@@ -54,6 +54,9 @@ $tokens = $tokenizer->tokenize('2 (1 + 3)'); // [2, '*', '(', 1, '+', 3, ')']
 ```
 
 ### Changelog
+3.0.0
+* Breaking: PHP 8.1 is the minimum required version
+
 2.0.1
 * Added LICENSE
 
