@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Created by PhpStorm.
  * User: Tsvetan Ovedenski
@@ -20,6 +20,8 @@ interface Tokens
 
     const ARG_SEPARATOR = ',';
     const FLOAT_POINT   = '.';
+
+    const PARAMS_END    = '|';
 
     const PAREN_LEFT    = '(';
     const PAREN_RIGHT   = ')';

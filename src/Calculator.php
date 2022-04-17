@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 namespace Fintara\Tools\Calculator;
 
 class Calculator {
@@ -124,9 +124,13 @@ class Calculator {
                     throw new \InvalidArgumentException('Parenthesis are misplaced');
                 }
 
+                $cnt = 0;
                 while($stack->top() != Tokens::PAREN_LEFT) {
                     $queue->enqueue($stack->pop());
+                    $cnt++;
                 }
+
+                $queue->enqueue('|' . $cnt);
 
                 $stack->pop();
 
@@ -153,26 +157,46 @@ class Calculator {
     private function calculateFromRPN(\SplQueue $queue) {
         $stack = new \SplStack();
 
+        var_dump($queue);
+
         while($queue->count() > 0) {
             $currentToken = $queue->dequeue();
-            if(is_numeric($currentToken)) {
+            if(is_numeric($currentToken) || $currentToken[0] === '|') {
                 $stack->push($currentToken);
             }
             else {
                 if(in_array($currentToken, Tokens::OPERATORS)) {
                     if($stack->count() < 2) {
-                        throw new \InvalidArgumentException('Invalid expression');
+                        throw new \InvalidArgumentException('Invalid expression: expected two operands, stack has less');
                     }
                     $stack->push($this->executeOperator($currentToken, $stack->pop(), $stack->pop()));
                 }
                 else if(array_key_exists($currentToken, $this->functions)) {
                     if($stack->count() < $this->functions[$currentToken]['paramsCount']) {
-                        throw new \InvalidArgumentException('Invalid expression');
+                        throw new \InvalidArgumentException('Invalid expression: stack has less values than required params count');
                     }
 
                     $params = [];
-                    for($i = 0; $i < $this->functions[$currentToken]['paramsCount']; $i++) {
-                        $params[] = $stack->pop();
+                    if ($this->functions[$currentToken]['paramsCount'] > 0) {
+                        for($i = 0; $i < $this->functions[$currentToken]['paramsCount']; $i++) {
+                            $params[] = $stack->pop();
+                        }
+                    } else if (is_string($stack->top()) && $stack->top()[0] === '|') {
+                        $a = intval(substr($stack->pop(), 1));
+                        for($i = 0; $i < $a; $i++) {
+                            $params[] = $stack->pop();
+                        }
+                        // var_dump($currentToken);
+                        // var_dump($stack);
+                        // var_dump($stack->top());
+                        // while ($stack->count() > 0 && $stack->top() !== '|') {
+                        //     $params[] = $stack->pop();
+                        // }
+                        // $stack->pop();
+                    }
+
+                    if(count($params) === 0) {
+                        throw new \InvalidArgumentException('Invalid expression: custom function without params');
                     }
 
                     $stack->push($this->executeFunction($currentToken, $params));
