@@ -73,6 +73,15 @@ class CalculatorTest extends TestCase {
         $this->assertEquals(15, $result);
     }
 
+    public function testCustomVarargFunctionNested() {
+        $this->calculator->addFunction('max', function (float ...$a) : float {
+            return max(...$a);
+        });
+
+        $result = $this->calculator->calculate('1 + max(5, max(2, sqrt(81), max(4, 6, 10))) + 10');
+        $this->assertEquals(21, $result);
+    }
+
     public function testReplaceFunction() {
         $this->calculator->addFunction('plus_one', function($num) {
             return $num + 10;
@@ -86,19 +95,56 @@ class CalculatorTest extends TestCase {
         $this->assertEquals(3, $result);
     }
 
-    public function testCalculate() {
+    public function testCalculate001() {
         $this->executeCalculation('250*14.3', 3575);
+    }
+
+    public function testCalculate002() {
         $this->executeCalculation('3^6 / 117', 6.2307692307692);
+    }
+
+    public function testCalculate003() {
         $this->executeCalculation('(2.16 - 48.34)^-1', -0.021654395842355994);
+    }
+
+    public function testCalculate004() {
         $this->executeCalculation('(59 - 15 + 3*6)/21', 2.952380952381);
+    }
+
+    public function testCalculate005() {
         $this->executeCalculation('3-(4-6)', 5);
+    }
+
+    public function testCalculate006() {
         $this->executeCalculation('9 % 4', 1);
+    }
+
+    public function testCalculate007() {
         $this->executeCalculation('2^3 * 2 % 8 + 1', 1);
+    }
+
+    public function testCalculate008() {
         $this->executeCalculation('sqrt(4)', 2);
+    }
+
+    public function testCalculate009() {
         $this->executeCalculation('sqrt(sqrt(16))', 2);
+    }
+
+    public function testCalculate010() {
         $this->executeCalculation('5sqrt(4)', 10);
+    }
+
+    public function testCalculate011() {
         $this->executeCalculation('log(3,(3*3))', 2);
+    }
+
+    public function testCalculate012() {
         $this->executeCalculation('10sqrt(log(3,9)^2)', 20);
+    }
+
+    public function testCalculate013() {
+        $this->executeCalculation('sqrt(1) + sqrt(log(3,9)) + sqrt(log(sqrt(9),sqrt(81)))', 3.82842712474619);
     }
 
     private function executeCalculation($expression, $expect) {

@@ -87,22 +87,21 @@ class Calculator {
         $stack = new \SplStack();
 
         $isFuncArgs = 0;
-        $funcArgsCount = [];
+        $funcArgsCount = [ 0 => 0 ];
         $tokensCount = count($tokens);
         for($i = 0; $i < $tokensCount; $i++) {
             if(is_numeric($tokens[$i])) {
                 // (string + 0) converts to int or float
                 $queue->enqueue(floatval($tokens[$i]));
-                if ($isFuncArgs) {
-                    if (!array_key_exists($isFuncArgs, $funcArgsCount)) {
-                        $funcArgsCount[$isFuncArgs] = 0;
-                    }
-                    $funcArgsCount[$isFuncArgs]++;
-                }
+                $funcArgsCount[$isFuncArgs]++;
             }
             else if(array_key_exists($tokens[$i], $this->functions)) {
                 $stack->push($tokens[$i]);
+                $funcArgsCount[$isFuncArgs]++;
                 $isFuncArgs++;
+                if (!array_key_exists($isFuncArgs, $funcArgsCount)) {
+                    $funcArgsCount[$isFuncArgs] = 0;
+                }
             }
             else if($tokens[$i] === Tokens::ARG_SEPARATOR) {
                 // checking whether stack contains left parenthesis (dirty hack)
@@ -112,6 +111,7 @@ class Calculator {
 
                 while($stack->top() != Tokens::PAREN_LEFT) {
                     $queue->enqueue($stack->pop());
+                    $funcArgsCount[$isFuncArgs]++;
                 }
             }
             else if(in_array($tokens[$i], Tokens::OPERATORS)) {
@@ -135,10 +135,12 @@ class Calculator {
 
                 while($stack->top() != Tokens::PAREN_LEFT) {
                     $queue->enqueue($stack->pop());
+                    $funcArgsCount[$isFuncArgs]++;
                 }
 
                 if ($isFuncArgs > 0) {
-                    $queue->enqueue('|' . (isset($funcArgsCount[$isFuncArgs]) ? $funcArgsCount[$isFuncArgs] : 0));
+                    $paramsCount = isset($funcArgsCount[$isFuncArgs]) ? $funcArgsCount[$isFuncArgs] : 0;
+                    $queue->enqueue(self::encodeParamsCount($paramsCount));
                     $isFuncArgs--;
                 }
 
@@ -166,10 +168,11 @@ class Calculator {
      */
     private function calculateFromRPN(\SplQueue $queue) {
         $stack = new \SplStack();
+        $ser = serialize($queue);
 
         while($queue->count() > 0) {
             $currentToken = $queue->dequeue();
-            if(is_numeric($currentToken) || $currentToken[0] === '|') {
+            if(is_numeric($currentToken) || self::isParamsCount($currentToken)) {
                 $stack->push($currentToken);
             }
             else {
@@ -186,10 +189,10 @@ class Calculator {
 
                     $paramsCount = 0;
                     if ($this->functions[$currentToken]['paramsCount'] > 0) {
-                        $stack->pop(); // |cnt
+                        $stack->pop(); // paramsCount
                         $paramsCount = $this->functions[$currentToken]['paramsCount'];
                     } else {
-                        $paramsCount = intval(substr($stack->pop(), 1));
+                        $paramsCount = self::decodeParamsCount($stack->pop());
                     }
 
                     $params = [];
@@ -220,12 +223,17 @@ class Calculator {
      * @return float|int Result of the calculation.
      */
     public function calculate(string $expression) {
-        $tokens = $this->tokenizer->tokenize($expression, array_keys($this->functions));
-        $rpn    = $this->getReversePolishNotation($tokens);
+        try {
+            $tokens = $this->tokenizer->tokenize($expression, array_keys($this->functions));
+            $rpn    = $this->getReversePolishNotation($tokens);
 
-        $result = $this->calculateFromRPN($rpn);
+            $result = $this->calculateFromRPN($rpn);
 
-        return $result;
+            return $result;
+        } catch (\Exception $e) {
+            var_dump($expression);
+            throw $e;
+        }
     }
 
     /**
@@ -306,5 +314,17 @@ class Calculator {
      */
     private function executeFunction(string $functionName, array $params) {
         return call_user_func_array($this->functions[$functionName]['func'], array_reverse($params));
+    }
+
+    private static function encodeParamsCount(int $count): string {
+        return "#.paramsCount.$count";
+    }
+
+    private static function isParamsCount($arg): bool {
+        return is_string($arg) && strpos($arg, "#.paramsCount.") === 0;
+    }
+
+    private static function decodeParamsCount($arg): int {
+        return self::isParamsCount($arg) ? intval(substr($arg, 14)) : 0;
     }
 }
